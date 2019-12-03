@@ -17,10 +17,10 @@ template <typename State,
 class Timer : public SM<State, Input, Output>
 {
 public:
-    typedef typename SM<State, Input, Output>::S S;
-    typedef typename SM<State, Input, Output>::I I;
-    typedef typename SM<State, Input, Output>::O O;
-    typedef typename SM<State, Input, Output>::C C;
+    using typename SM<State, Input, Output>::S;
+    using typename SM<State, Input, Output>::I;
+    using typename SM<State, Input, Output>::O;
+    using typename SM<State, Input, Output>::C;
 
 public:
     Timer(C &ctx) : SM<State, Input, Output>(ctx)

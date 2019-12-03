@@ -13,8 +13,8 @@ template <typename Input, typename Output>
 class Router : public CTX<Input, Output>
 {
 public:
-    typedef typename CTX<Input, Output>::I I;
-    typedef typename CTX<Input, Output>::O O;
+    using typename CTX<Input, Output>::I;
+    using typename CTX<Input, Output>::O;
 
 public:
     class Message : public Output
@@ -69,8 +69,8 @@ template <typename Input, typename Output>
 class MultiRouter : public CTX<Input, Output>
 {
 public:
-    typedef typename CTX<Input, Output>::I I;
-    typedef typename CTX<Input, Output>::O O;
+    using typename CTX<Input, Output>::I;
+    using typename CTX<Input, Output>::O;
 
 public:
     class Message : public Output
