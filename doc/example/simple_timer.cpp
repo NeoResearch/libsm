@@ -1,5 +1,5 @@
 #include <iostream>
-#include "../src/libsm.hpp"
+#include "../../src/libsm.hpp"
 
 enum State
 {

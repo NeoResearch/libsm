@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <thread>
-#include "../src/libsm.hpp"
+#include "../../src/libsm.hpp"
 
 const int f = 1;
 
