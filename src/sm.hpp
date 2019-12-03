@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ctx.hpp"
-
 namespace sm
 {
 template <typename State, typename Input, typename Output>

@@ -35,7 +35,9 @@ protected:
     }
     virtual O of(const I &i, const S &s) override
     {
-        return ::std::make_unique<typename Router<Input, Output>::Message>(this, Input());
+        O ret = ::std::make_unique<Output>();
+        ret->push(::std::make_unique<Message<Input, Output>>(this, ::std::make_unique<Input>()));
+        return ret;
     }
     virtual bool goon(const S &s) override
     {

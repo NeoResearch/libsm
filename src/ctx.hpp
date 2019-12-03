@@ -26,6 +26,19 @@ public:
     {
     }
 
+    void msg(void *target, I &&i)
+    {
+        if (target == nullptr)
+        {
+            return;
+        }
+        if (i == nullptr)
+        {
+            return;
+        }
+        messages[target].push(std::move(i));
+    }
+
 protected:
     std::map<void *, lib::queue<I>> messages;
 };

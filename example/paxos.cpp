@@ -1,7 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <thread>
-#include <sstream>
 #include "../src/libsm.hpp"
 
 const int f = 1;
@@ -69,10 +68,7 @@ struct Input
     } accepted;
 };
 
-class Output : public sm::std::MultiRouter<Input, Output>::BasicOutput
-{
-};
-
+typedef sm::std::Output<Input> Output;
 typedef sm::SM<State, Input, Output> SM;
 typedef sm::CTX<Input, Output> CTX;
 
@@ -127,14 +123,8 @@ std::ostream &operator<<(std::ostream &os, const Input &s)
     }
 }
 
-class Context : public sm::std::MultiRouter<Input, Output>
+class Context : public sm::std::Router<Input>
 {
-public:
-    virtual void send(void *sm, const O &o) override
-    {
-        sm::std::MultiRouter<Input, Output>::send(sm, o);
-    }
-
 public:
     static std::vector<void *> acceptors;
     static void *proposer;
@@ -144,9 +134,7 @@ public:
 class StateMachine : public SM
 {
 public:
-    StateMachine(C &ctx) : SM(ctx)
-    {
-    }
+    StateMachine(C &ctx) : SM(ctx) {}
 
 protected:
     virtual S tf(const I &i, const S &s) override
@@ -214,6 +202,7 @@ protected:
     }
     virtual O of(const I &i, const S &s) override
     {
+        O ret = ::std::make_unique<Output>();
         if (i->value == Input::REQUEST)
         {
             if (s->value == State::PROPOSER)
@@ -221,7 +210,10 @@ protected:
                 Input input;
                 input.value = Input::PREPARE;
                 input.prepare.n = s->proposer.n + 1;
-                return std::make_unique<Context::Message>(Context::Message(Context::acceptors, input));
+                for (auto v : Context::acceptors)
+                {
+                    ret->push(::std::make_unique<sm::std::Message<Input, Output>>(v, ::std::make_unique<Input>(input)));
+                }
             }
         }
         else if (i->value == Input::PREPARE)
@@ -235,7 +227,7 @@ protected:
                     input.promise.n = i->prepare.n;
                     input.promise.m = s->acceptor.m;
                     input.promise.w = s->acceptor.v;
-                    return std::make_unique<Context::Message>(Context::Message({Context::proposer}, input));
+                    ret->push(::std::make_unique<sm::std::Message<Input, Output>>(Context::proposer, ::std::make_unique<Input>(input)));
                 }
             }
         }
@@ -251,7 +243,10 @@ protected:
                         input.value = Input::ACCEPT;
                         input.accept.n = s->proposer.n;
                         input.accept.v = s->proposer.x;
-                        return std::make_unique<Context::Message>(Context::Message(Context::acceptors, input));
+                        for (auto v : Context::acceptors)
+                        {
+                            ret->push(::std::make_unique<sm::std::Message<Input, Output>>(v, ::std::make_unique<Input>(input)));
+                        }
                     }
                 }
             }
@@ -266,11 +261,12 @@ protected:
                     input.value = Input::ACCEPTED;
                     input.accepted.n = i->accept.n;
                     input.accepted.v = i->accept.v;
-                    return std::make_unique<Context::Message>(Context::Message({Context::proposer, Context::learner}, input));
+                    ret->push(::std::make_unique<sm::std::Message<Input, Output>>(Context::proposer, ::std::make_unique<Input>(input)));
+                    ret->push(::std::make_unique<sm::std::Message<Input, Output>>(Context::learner, ::std::make_unique<Input>(input)));
                 }
             }
         }
-        return nullptr;
+        return ret;
     }
     virtual bool goon(const S &s) override
     {
@@ -304,8 +300,7 @@ int main()
     Input input;
     input.value = Input::REQUEST;
     input.request.x = 517;
-    std::unique_ptr<Output> msg = std::make_unique<Context::Message>(Context::Message({sm_proposer.get()}, input));
-    ctx->send(nullptr, msg);
+    ctx->msg(sm_proposer.get(), std::make_unique<Input>(input));
     std::thread thread_propopser([&]() {
         State state;
         state.value = State::PROPOSER;
