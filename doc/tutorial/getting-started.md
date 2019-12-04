@@ -1,24 +1,24 @@
-1. define the state, input and output of the state
+1. define the state `S`, input `I` and output `O` of the state
 
    ```c++
-   class State
+   class S
    {
        // ...
    };
-   class Input
+   class I
    {
        // ...
    };
-   class Output
+   class O
    {
        // ...
    };
    ```
 
-2. inherit the state machine class based on `sm::SM<State, Input, Output>` and override the transition function `tf` and output function `of` and function `goon`
+2. inherit the state machine class based on `sm::SM<S, I, O>` and override the transition function `tf` and output function `of` and function `goon`
 
    ```c++
-   class StateMachine : public sm::SM<State, Input, Output>
+   class StateMachine : public sm::SM<S, I, O>
    {
        virtual S tf(const I &i, const S &s) override
        {
@@ -35,26 +35,13 @@
    };
    ```
 
-3. inherit the context class based on `sm::SM<Input, Output>` and override the function `send`
-
-   ```c++
-   class Context : public sm::CTX<Input, Output>
-   {
-       virtual void send(void *sm, const O &o) override
-       {
-           // ...
-       }
-   }
-   ```
-
-4. main function
+3. create state machine instances in main function and run
 
    ```c++
    int main()
    {
-       // create some instanse of state machines and an instanse of context
-       // run each state machine in parallel
-       // you may send some input to trig some state machines
+       auto sm = StateMachine([] { return I::MSG; }, [](const O &) { std::cout << "ok" << std::endl; });
+       sm.run(S::INIT);
        return 0;
    }
    ```

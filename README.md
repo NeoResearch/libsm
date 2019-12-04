@@ -14,8 +14,8 @@ TODO
 
 ## example
 
-[Simple](doc/example/simple.cpp)
+[Simple](doc/example/simple/)
 
-[Simple Timer](doc/example/simple_timer.cpp)
+[Wait Input](doc/example/wait-input/)
 
-[Paxos](doc/example/paxos.cpp)
+[Paxos](doc/example/paxos/)

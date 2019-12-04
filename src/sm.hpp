@@ -1,49 +1,46 @@
 #pragma once
-
-#include "ctx.hpp"
+#include <functional>
 namespace sm
 {
-template <typename State, typename Input, typename Output>
+template <typename S, typename I, typename O>
 class SM
 {
 public:
-    typedef std::unique_ptr<State> S;
-    typedef std::unique_ptr<Input> I;
-    typedef std::unique_ptr<Output> O;
-    typedef std::unique_ptr<CTX<Input, Output>> C;
+    using RECV = std::function<I()>;
+    using SEND = std::function<void(const O &)>;
+    SM(RECV recv, SEND send) : recv(recv), send(send) {}
 
-public:
-    SM(C &ctx) : ctx(ctx)
+    void run(S initial)
     {
-    }
-
-    void run(S &&initial_state)
-    {
-        for (auto state = std::move(initial_state); goon(state);)
+        for (auto state = initial; goon(state); state = step(state))
         {
-            auto input = ctx->recv(this);
-            auto next = tf(input, state);
-            auto output = of(input, state);
-            ctx->send(this, output);
-            state.swap(next);
         }
     }
 
 protected:
     virtual S tf(const I &i, const S &s)
     {
-        throw std::exception();
+        return s;
     }
     virtual O of(const I &i, const S &s)
     {
-        throw std::exception();
+        return O();
     }
     virtual bool goon(const S &s)
     {
-        return true;
+        return false;
     }
 
 private:
-    const C &ctx;
+    RECV recv;
+    SEND send;
+    S step(const S &s)
+    {
+        auto input = recv();
+        auto next = tf(input, s);
+        auto output = of(input, s);
+        send(output);
+        return next;
+    }
 };
 } // namespace sm
