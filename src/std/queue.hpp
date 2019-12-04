@@ -2,6 +2,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <deque>
+#include "../sm.hpp"
 
 namespace sm
 {

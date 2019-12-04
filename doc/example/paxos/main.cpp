@@ -2,8 +2,7 @@
 #include <array>
 #include <vector>
 #include <thread>
-#include "../../../src/sm.hpp"
-#include "../../../src/std/queue.hpp"
+#include "../../../src/std.hpp"
 
 class SM;
 
