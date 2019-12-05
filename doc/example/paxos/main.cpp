@@ -21,24 +21,48 @@ struct S
         PROPOSER,
         ACCEPTOR,
         LEARNER,
-    } value;
-    struct
+    } type;
+    union {
+        struct
+        {
+            unsigned n;
+            unsigned m;
+            unsigned p;
+            unsigned x;
+        } proposer;
+        struct
+        {
+            unsigned n;
+            unsigned m;
+            unsigned v;
+        } acceptor;
+        struct
+        {
+            unsigned v;
+        } learner;
+    };
+    friend std::ostream &operator<<(std::ostream &os, const S &s)
     {
-        unsigned n;
-        unsigned m;
-        unsigned p;
-        unsigned x;
-    } proposer;
-    struct
-    {
-        unsigned n;
-        unsigned m;
-        unsigned v;
-    } acceptor;
-    struct
-    {
-        unsigned v;
-    } learner;
+        switch (s.type)
+        {
+        case S::PROPOSER:
+            return os << "<PROPOSER>: "
+                      << " n=" << s.proposer.n
+                      << " m=" << s.proposer.m
+                      << " p=" << s.proposer.p
+                      << " x=" << s.proposer.x;
+        case S::ACCEPTOR:
+            return os << "<ACCEPTOR>: "
+                      << " n=" << s.acceptor.n
+                      << " m=" << s.acceptor.m
+                      << " v=" << s.acceptor.v;
+        case S::LEARNER:
+            return os << "<LEARNER>: "
+                      << " v=" << s.learner.v;
+        default:
+            return os << "<UNKNOWN>: ";
+        }
+    }
 };
 
 struct I
@@ -50,87 +74,65 @@ struct I
         PROMISE,
         ACCEPT,
         ACCEPTED,
-    } value;
-    struct
+    } type;
+    union {
+        struct
+        {
+            unsigned x;
+        } request;
+        struct
+        {
+            unsigned n;
+        } prepare;
+        struct
+        {
+            unsigned n;
+            unsigned m;
+            unsigned w;
+        } promise;
+        struct
+        {
+            unsigned n;
+            unsigned v;
+        } accept;
+        struct
+        {
+            unsigned n;
+            unsigned v;
+        } accepted;
+    };
+    friend std::ostream &operator<<(std::ostream &os, const I &i)
     {
-        unsigned x;
-    } request;
-    struct
-    {
-        unsigned n;
-    } prepare;
-    struct
-    {
-        unsigned n;
-        unsigned m;
-        unsigned w;
-    } promise;
-    struct
-    {
-        unsigned n;
-        unsigned v;
-    } accept;
-    struct
-    {
-        unsigned n;
-        unsigned v;
-    } accepted;
+        switch (i.type)
+        {
+        case I::REQUEST:
+            return os << "<REQUEST>: "
+                      << " x=" << i.request.x;
+        case I::PREPARE:
+            return os << "<PREPARE>: "
+                      << " n=" << i.prepare.n;
+        case I::PROMISE:
+            return os << "<PROMISE>: "
+                      << " n=" << i.promise.n
+                      << " m=" << i.promise.m
+                      << " w=" << i.promise.w;
+        case I::ACCEPT:
+            return os << "<ACCEPT>: "
+                      << " n=" << i.accept.n
+                      << " v=" << i.accept.v;
+        case I::ACCEPTED:
+            return os << "<ACCEPTED>: "
+                      << " n=" << i.accepted.n
+                      << " v=" << i.accepted.v;
+        default:
+            return os << "<UNKNOWN>: ";
+        }
+    }
 };
 
 struct O : public sm::std::Queue<S, I, O>::MESSAGES
 {
 };
-
-std::ostream &operator<<(std::ostream &os, const S &s)
-{
-    switch (s.value)
-    {
-    case S::PROPOSER:
-        return os << "<PROPOSER>: "
-                  << " n=" << s.proposer.n
-                  << " m=" << s.proposer.m
-                  << " p=" << s.proposer.p
-                  << " x=" << s.proposer.x;
-    case S::ACCEPTOR:
-        return os << "<ACCEPTOR>: "
-                  << " n=" << s.acceptor.n
-                  << " m=" << s.acceptor.m
-                  << " v=" << s.acceptor.v;
-    case S::LEARNER:
-        return os << "<LEARNER>: "
-                  << " v=" << s.learner.v;
-    default:
-        return os << "<UNKNOWN>: ";
-    }
-}
-
-std::ostream &operator<<(std::ostream &os, const I &s)
-{
-    switch (s.value)
-    {
-    case I::REQUEST:
-        return os << "<REQUEST>: "
-                  << " x=" << s.request.x;
-    case I::PREPARE:
-        return os << "<PREPARE>: "
-                  << " n=" << s.prepare.n;
-    case I::PROMISE:
-        return os << "<PROMISE>: "
-                  << " n=" << s.promise.n
-                  << " m=" << s.promise.m
-                  << " w=" << s.promise.w;
-    case I::ACCEPT:
-        return os << "<ACCEPT>: "
-                  << " n=" << s.accept.n
-                  << " v=" << s.accept.v;
-    case I::ACCEPTED:
-        return os << "<ACCEPTED>: "
-                  << " n=" << s.accepted.n
-                  << " v=" << s.accepted.v;
-    default:
-        return os << "<UNKNOWN>: ";
-    }
-}
 
 class SM : public sm::std::Queue<S, I, O>
 {
@@ -139,18 +141,18 @@ protected:
     {
         std::cout << "[TF][FROM]: " << this << " " << i << " " << s << std::endl;
         S ret = s;
-        if (i.value == I::REQUEST)
+        if (i.type == I::REQUEST)
         {
-            if (s.value == S::PROPOSER)
+            if (s.type == S::PROPOSER)
             {
                 ret.proposer.n = ret.proposer.n + 1;
                 ret.proposer.p = 0;
                 ret.proposer.x = i.request.x;
             }
         }
-        else if (i.value == I::PREPARE)
+        else if (i.type == I::PREPARE)
         {
-            if (s.value == S::ACCEPTOR)
+            if (s.type == S::ACCEPTOR)
             {
                 if (s.acceptor.n < i.prepare.n)
                 {
@@ -158,9 +160,9 @@ protected:
                 }
             }
         }
-        else if (i.value == I::PROMISE)
+        else if (i.type == I::PROMISE)
         {
-            if (s.value == S::PROPOSER)
+            if (s.type == S::PROPOSER)
             {
                 if (s.proposer.n == i.promise.n)
                 {
@@ -177,9 +179,9 @@ protected:
                 }
             }
         }
-        else if (i.value == I::ACCEPT)
+        else if (i.type == I::ACCEPT)
         {
-            if (s.value == S::ACCEPTOR)
+            if (s.type == S::ACCEPTOR)
             {
                 if (s.acceptor.n <= i.accept.n)
                 {
@@ -188,9 +190,9 @@ protected:
                 }
             }
         }
-        else if (i.value == I::ACCEPTED)
+        else if (i.type == I::ACCEPTED)
         {
-            if (s.value == S::LEARNER)
+            if (s.type == S::LEARNER)
             {
                 ret.learner.v = i.accepted.v;
             }
@@ -201,12 +203,12 @@ protected:
     virtual O of(const I &i, const S &s) override
     {
         O ret;
-        if (i.value == I::REQUEST)
+        if (i.type == I::REQUEST)
         {
-            if (s.value == S::PROPOSER)
+            if (s.type == S::PROPOSER)
             {
                 I input;
-                input.value = I::PREPARE;
+                input.type = I::PREPARE;
                 input.prepare.n = s.proposer.n + 1;
                 for (auto &v : GLOBAL::smsa)
                 {
@@ -214,14 +216,14 @@ protected:
                 }
             }
         }
-        else if (i.value == I::PREPARE)
+        else if (i.type == I::PREPARE)
         {
-            if (s.value == S::ACCEPTOR)
+            if (s.type == S::ACCEPTOR)
             {
                 if (s.acceptor.n < i.prepare.n)
                 {
                     I input;
-                    input.value = I::PROMISE;
+                    input.type = I::PROMISE;
                     input.promise.n = i.prepare.n;
                     input.promise.m = s.acceptor.m;
                     input.promise.w = s.acceptor.v;
@@ -232,16 +234,16 @@ protected:
                 }
             }
         }
-        else if (i.value == I::PROMISE)
+        else if (i.type == I::PROMISE)
         {
-            if (s.value == S::PROPOSER)
+            if (s.type == S::PROPOSER)
             {
                 if (s.proposer.n == i.promise.n)
                 {
                     if (s.proposer.p == GLOBAL::F)
                     {
                         I input;
-                        input.value = I::ACCEPT;
+                        input.type = I::ACCEPT;
                         input.accept.n = s.proposer.n;
                         input.accept.v = s.proposer.x;
                         for (auto &v : GLOBAL::smsa)
@@ -252,14 +254,14 @@ protected:
                 }
             }
         }
-        else if (i.value == I::ACCEPT)
+        else if (i.type == I::ACCEPT)
         {
-            if (s.value == S::ACCEPTOR)
+            if (s.type == S::ACCEPTOR)
             {
                 if (s.acceptor.n <= i.accept.n)
                 {
                     I input;
-                    input.value = I::ACCEPTED;
+                    input.type = I::ACCEPTED;
                     input.accepted.n = i.accept.n;
                     input.accepted.v = i.accept.v;
                     for (auto &v : GLOBAL::smsp)
@@ -293,12 +295,12 @@ int main()
 {
 
     I i;
-    i.value = I::REQUEST;
+    i.type = I::REQUEST;
     i.request.x = 517;
     GLOBAL::smsp[0].send(i);
     std::thread tp([&]() {
         S s;
-        s.value = S::PROPOSER;
+        s.type = S::PROPOSER;
         s.proposer.n = 1;
         s.proposer.m = 0;
         s.proposer.p = 0;
@@ -307,7 +309,7 @@ int main()
     });
     std::thread ta0([&]() {
         S s;
-        s.value = S::ACCEPTOR;
+        s.type = S::ACCEPTOR;
         s.acceptor.n = 0;
         s.acceptor.m = 0;
         s.acceptor.v = 0;
@@ -315,7 +317,7 @@ int main()
     });
     std::thread ta1([&]() {
         S s;
-        s.value = S::ACCEPTOR;
+        s.type = S::ACCEPTOR;
         s.acceptor.n = 0;
         s.acceptor.m = 0;
         s.acceptor.v = 0;
@@ -323,7 +325,7 @@ int main()
     });
     std::thread ta3([&]() {
         S s;
-        s.value = S::ACCEPTOR;
+        s.type = S::ACCEPTOR;
         s.acceptor.n = 0;
         s.acceptor.m = 0;
         s.acceptor.v = 0;
@@ -331,7 +333,7 @@ int main()
     });
     std::thread tl([&]() {
         S s;
-        s.value = S::LEARNER;
+        s.type = S::LEARNER;
         s.learner.v = 0;
         GLOBAL::smsl[0].run(s);
     });
